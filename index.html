@@ -1297,6 +1297,351 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-he
 </div>
 </div>
 
+<!-- ════════════════ PAINEL DE MONITORAMENTO (GESTÃO) ════════════════ -->
+<style>
+body.dash-mode .month-tabs,
+body.dash-mode .wrapper,
+body.dash-mode .replicate-actions,
+body.dash-mode .btn-save{display:none !important}
+#dashboardView{display:none}
+body.dash-mode #dashboardView{display:block}
+
+#dashboardView{padding:18px 22px 60px;max-width:1500px;margin:0 auto}
+.dash-head{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:18px}
+.dash-head h1{font-size:1.35rem;font-weight:800;color:var(--azul-escuro);letter-spacing:-.01em}
+.dash-head .dash-sub{font-size:.72rem;color:var(--muted);margin-top:3px;letter-spacing:.02em}
+.dash-tools{display:flex;gap:8px;align-items:center}
+.dash-btn{background:var(--azul);border:none;color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:.72rem;padding:8px 14px;border-radius:7px;cursor:pointer;transition:.15s;letter-spacing:.04em}
+.dash-btn:hover{background:var(--azul-escuro)}
+.dash-btn.ghost{background:#fff;color:var(--azul);border:1.5px solid var(--border2)}
+.dash-updated{font-size:.66rem;color:var(--muted2);font-family:'DM Mono',monospace}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:14px 15px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.kpi::after{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--azul)}
+.kpi.k-green::after{background:#1a8f6a}.kpi.k-amber::after{background:#c47a1a}.kpi.k-red::after{background:#c0392b}.kpi.k-blue::after{background:var(--azul)}.kpi.k-dark::after{background:var(--azul-escuro)}
+.kpi-label{font-size:.6rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.kpi-value{font-size:1.75rem;font-weight:800;line-height:1.05;margin-top:6px;color:var(--text)}
+.kpi-value small{font-size:.85rem;font-weight:700;color:var(--muted2)}
+.kpi-foot{font-size:.62rem;color:var(--muted2);margin-top:4px}
+
+.dash-row{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;margin-bottom:18px}
+@media(max-width:960px){.dash-row{grid-template-columns:1fr}.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:15px 16px;box-shadow:var(--shadow)}
+.card h2{font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--azul-escuro);margin-bottom:12px}
+.card .chart-wrap{position:relative;height:300px}
+.card .chart-wrap.tall{height:430px}
+
+.dash-legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.64rem;color:var(--muted);margin:2px 0 16px}
+.dash-legend b{font-weight:700;color:var(--text)}
+.lg-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.dot-green{background:#1a8f6a}.dot-amber{background:#c47a1a}.dot-red{background:#c0392b}.dot-grey{background:#b8b2a8}
+
+/* heatmap */
+.heat-wrap{overflow-x:auto}
+table.heat{border-collapse:collapse;width:100%;font-size:.64rem}
+table.heat th,table.heat td{border:1px solid var(--border);padding:5px 4px;text-align:center;white-space:nowrap}
+table.heat th{background:var(--panel2);font-weight:700;color:var(--azul-escuro);position:sticky}
+table.heat td.tname{text-align:left;font-weight:600;color:var(--text);max-width:190px;overflow:hidden;text-overflow:ellipsis;background:var(--panel2)}
+.heat-cell{font-weight:700;color:#fff;border-radius:3px}
+
+/* detail table */
+.dtable-wrap{overflow-x:auto}
+table.dtable{border-collapse:collapse;width:100%;font-size:.7rem}
+table.dtable th,table.dtable td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+table.dtable th{font-size:.6rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700;background:var(--panel2);position:sticky;top:0}
+table.dtable td.num{text-align:center;font-family:'DM Mono',monospace}
+table.dtable tr:hover td{background:#f6faff}
+.bar-mini{display:inline-block;width:70px;height:8px;border-radius:4px;background:#eceae4;vertical-align:middle;margin-right:6px;overflow:hidden}
+.bar-mini>i{display:block;height:100%;border-radius:4px}
+.st-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:.6rem;font-weight:700;letter-spacing:.03em}
+.st-green{background:#e6f5ee;color:#1a8f6a}.st-amber{background:#fdf3e3;color:#c47a1a}.st-red{background:#fde8e8;color:#c0392b}.st-grey{background:#eeece6;color:#7a7568}
+.see-btn{background:var(--azul);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:.62rem;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.see-btn:hover{background:var(--azul-escuro)}
+.dash-loading{text-align:center;padding:60px 20px;color:var(--muted);font-size:.85rem}
+.dash-spin{width:34px;height:34px;border:3px solid var(--border2);border-top-color:var(--azul);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<div id="dashboardView">
+  <div class="dash-head">
+    <div>
+      <h1>📊 Painel de Monitoramento — Agendas &amp; Planos de Aula</h1>
+      <div class="dash-sub">EE Prof. Luiz Simioni Sobrinho · Ensino Médio (Tarde/Noite) · 2026 — visão consolidada de execução de todos os professores</div>
+    </div>
+    <div class="dash-tools">
+      <span class="dash-updated" id="dashUpdated"></span>
+      <button class="dash-btn" onclick="window.buildDashboard()">↻ Atualizar dados</button>
+    </div>
+  </div>
+
+  <div class="dash-legend">
+    <span><span class="lg-dot dot-green"></span><b>Em dia</b> · execução ≥ 70%</span>
+    <span><span class="lg-dot dot-amber"></span><b>Atenção</b> · 40–69%</span>
+    <span><span class="lg-dot dot-red"></span><b>Atrasado</b> · &lt; 40%</span>
+    <span><span class="lg-dot dot-grey"></span><b>Sem dados</b> · agenda não iniciada</span>
+    <span style="color:var(--muted2)">Execução = planos de aula efetivamente elaborados ÷ aulas previstas até a data.</span>
+  </div>
+
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <div class="dash-row">
+    <div class="card">
+      <h2>Ranking de execução por professor (%)</h2>
+      <div class="chart-wrap tall"><canvas id="chartRank"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Situação geral do corpo docente</h2>
+      <div class="chart-wrap"><canvas id="chartStatus"></canvas></div>
+    </div>
+  </div>
+
+  <div class="dash-row" style="grid-template-columns:1fr">
+    <div class="card">
+      <h2>Planos de aula elaborados por mês (toda a escola)</h2>
+      <div class="chart-wrap"><canvas id="chartMonth"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <h2>Mapa de calor — execução por professor &amp; mês</h2>
+    <div class="heat-wrap" id="heatWrap"></div>
+  </div>
+
+  <div class="card">
+    <h2>Detalhamento por professor</h2>
+    <div class="dtable-wrap" id="detailWrap"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+// ══════════════════════════════════════════════════════════════════
+//  PAINEL DE MONITORAMENTO (perfil GESTOR)
+// ══════════════════════════════════════════════════════════════════
+(function(){
+  const MONTHS = ['MARCO','ABRIL','MAIO','JUNHO','JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+  const MLABEL = {MARCO:'Mar',ABRIL:'Abr',MAIO:'Mai',JUNHO:'Jun',JULHO:'Jul',AGOSTO:'Ago',SETEMBRO:'Set',OUTUBRO:'Out',NOVEMBRO:'Nov',DEZEMBRO:'Dez'};
+  const SCHOOL_START = new Date(2026,2,2); // 02/03/2026 (1ª semana letiva)
+
+  window._dashCharts = window._dashCharts || {};
+
+  window.enterDashboardMode = function(){
+    document.body.classList.add('dash-mode');
+    const sel = document.getElementById('adminProfSelect');
+    if (sel) { const opt = sel.querySelector('option[value=""]'); if (opt) opt.textContent = '📊 Painel de Monitoramento'; }
+    window.setStatus && window.setStatus('idle');
+  };
+  window.exitDashboardMode = function(){ document.body.classList.remove('dash-mode'); };
+
+  window.dashViewTeacher = function(name){
+    const sel = document.getElementById('adminProfSelect');
+    if (sel) sel.value = name;
+    if (window.adminSwitchUser) window.adminSwitchUser();
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  function teacherNames(){
+    return [...document.querySelectorAll('#adminProfSelect option')].map(o=>o.value).filter(Boolean);
+  }
+  function fbPathFor(name){ return 'agendas/' + name.replace(/[^a-zA-Z0-9]/g,'_') + '/dados'; }
+  function weeklyLoad(name){
+    const s = (window.TEACHER_SCHEDULE||{})[name]; if(!s) return 0;
+    let n=0; Object.keys(s).forEach(wd=>{ n += Object.keys(s[wd]).length; }); return n;
+  }
+  function weeksPerMonth(){
+    const map={}; MONTHS.forEach(m=>{ const p=document.getElementById('month-'+m); map[m]=p?p.querySelectorAll('.week-block').length:0; });
+    return map;
+  }
+  function weeksElapsed(){
+    const diff = (Date.now()-SCHOOL_START.getTime())/(7*86400000);
+    return Math.max(1, Math.min(55, Math.floor(diff)+1));
+  }
+  function norm(s){ return (s||'').toString().replace(/\s+/g,' ').trim().toLowerCase(); }
+  function parseBR(d){ const m=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec((d||'').trim()); return m? new Date(+m[3],+m[2]-1,+m[1]) : null; }
+
+  function analyze(name, data){
+    const sched = (window.TEACHER_SCHEDULE||{})[name] || {};
+    const wl = weeklyLoad(name);
+    const wMonth = weeksPerMonth();
+    const r = { name, weeklyLoad:wl, filledClass:0, elaborated:0, extras:0, filledCells:0,
+                perMonthClass:{}, perMonthElab:{}, lastUpdate:null, monthsActive:0 };
+    MONTHS.forEach(m=>{ r.perMonthClass[m]=0; r.perMonthElab[m]=0; });
+    data = data || {};
+    for (const k in data){
+      const v = (data[k]==null?'':String(data[k])).trim();
+      if (k.indexOf('upd_')===0){ const dt=parseBR(v); if(dt && (!r.lastUpdate||dt>r.lastUpdate)) r.lastUpdate=dt; continue; }
+      if (!v) continue;
+      const mm = /^c_([A-Z]+)_w\d+_r(\d+)_d(\d+)$/.exec(k);
+      if (mm){
+        r.filledCells++;
+        const mon=mm[1], row=mm[2], day=mm[3];
+        const label = sched[String(+day+1)] && sched[String(+day+1)][String(row)];
+        if (label){
+          r.filledClass++; r.perMonthClass[mon]=(r.perMonthClass[mon]||0)+1;
+          const a=norm(v), b=norm(label);
+          if (a!==b && a.replace(/\s/g,'').length > b.replace(/\s/g,'').length+3){
+            r.elaborated++; r.perMonthElab[mon]=(r.perMonthElab[mon]||0)+1;
+          }
+        } else { r.extras++; }
+      }
+    }
+    r.monthsActive = MONTHS.filter(m=>r.perMonthClass[m]>0).length;
+    const we = weeksElapsed();
+    r.expectedToDate = wl>0 ? wl*we : 0;
+    r.agendaPct = r.expectedToDate>0 ? Math.min(100, Math.round(r.filledClass/r.expectedToDate*100)) : null;
+    r.planoPct  = r.expectedToDate>0 ? Math.min(100, Math.round(r.elaborated/r.expectedToDate*100)) : null;
+    r.expectedMonth = {}; MONTHS.forEach(m=>{ r.expectedMonth[m]= wl*(wMonth[m]||0); });
+    // status
+    let st;
+    if (r.filledCells===0) st='grey';
+    else { const p = r.planoPct!=null ? r.planoPct : (r.elaborated>=8?75:r.elaborated>0?50:20);
+      st = p>=70?'green':p>=40?'amber':'red'; }
+    if (st!=='grey' && r.lastUpdate){ const days=(Date.now()-r.lastUpdate)/86400000; if(days>30 && st==='green') st='amber'; }
+    r.status = st;
+    r.daysSince = r.lastUpdate ? Math.floor((Date.now()-r.lastUpdate)/86400000) : null;
+    return r;
+  }
+
+  const ST_LABEL={green:'Em dia',amber:'Atenção',red:'Atrasado',grey:'Sem dados'};
+  const ST_COLOR={green:'#1a8f6a',amber:'#c47a1a',red:'#c0392b',grey:'#b8b2a8'};
+
+  function kpi(label,value,foot,cls){
+    return `<div class="kpi ${cls||'k-blue'}"><div class="kpi-label">${label}</div><div class="kpi-value">${value}</div><div class="kpi-foot">${foot||''}</div></div>`;
+  }
+
+  function render(rows){
+    rows.sort((a,b)=> (b.planoPct??-1)-(a.planoPct??-1) || b.elaborated-a.elaborated);
+    const total = rows.length;
+    const started = rows.filter(r=>r.filledCells>0).length;
+    const counts = {green:0,amber:0,red:0,grey:0}; rows.forEach(r=>counts[r.status]++);
+    const withPct = rows.filter(r=>r.planoPct!=null);
+    const avg = withPct.length ? Math.round(withPct.reduce((s,r)=>s+r.planoPct,0)/withPct.length) : 0;
+    const totAulas = rows.reduce((s,r)=>s+r.filledClass,0);
+    const totPlanos = rows.reduce((s,r)=>s+r.elaborated,0);
+
+    document.getElementById('kpiGrid').innerHTML =
+      kpi('Professores monitorados', total, 'corpo docente do EM','k-dark') +
+      kpi('Iniciaram a agenda', started+'<small>/'+total+'</small>', total?Math.round(started/total*100)+'% do total':'', 'k-blue') +
+      kpi('Execução média', avg+'<small>%</small>', 'planos elaborados ÷ previstos', avg>=70?'k-green':avg>=40?'k-amber':'k-red') +
+      kpi('Em dia', counts.green, '≥ 70% de execução','k-green') +
+      kpi('Atenção', counts.amber, '40–69% de execução','k-amber') +
+      kpi('Atrasados', counts.red, '< 40% de execução','k-red') +
+      kpi('Sem dados', counts.grey, 'agenda não iniciada','k-dark') +
+      kpi('Aulas registradas', totAulas.toLocaleString('pt-BR'), 'células de aula preenchidas','k-blue') +
+      kpi('Planos elaborados', totPlanos.toLocaleString('pt-BR'), 'com conteúdo além do rótulo','k-blue');
+
+    // RANK
+    const ranked = rows.filter(r=>r.filledCells>0);
+    drawBar('chartRank', ranked.map(r=>shortName(r.name)), ranked.map(r=>r.planoPct??0),
+            ranked.map(r=>ST_COLOR[r.status]), 'horizontal');
+    // STATUS donut
+    drawDonut('chartStatus', ['Em dia','Atenção','Atrasado','Sem dados'],
+              [counts.green,counts.amber,counts.red,counts.grey],
+              ['#1a8f6a','#c47a1a','#c0392b','#b8b2a8']);
+    // MONTH bar
+    const elapsedMonthIdx = new Date().getMonth(); // 0=jan
+    const monTot = MONTHS.map(m=> rows.reduce((s,r)=>s+(r.perMonthElab[m]||0),0));
+    drawBar('chartMonth', MONTHS.map(m=>MLABEL[m]), monTot, MONTHS.map((m,i)=> '#0070C0'), 'vertical');
+
+    renderHeat(rows);
+    renderDetail(rows);
+
+    document.getElementById('dashUpdated').textContent = 'Atualizado em ' + new Date().toLocaleString('pt-BR');
+  }
+
+  function shortName(n){ const p=n.split(' '); return p.length<=2?n:(p[0]+' '+p[p.length-1]); }
+
+  function renderHeat(rows){
+    const wMonth = weeksPerMonth();
+    let h = '<table class="heat"><thead><tr><th class="tname" style="text-align:left">Professor</th>';
+    MONTHS.forEach(m=> h+='<th>'+MLABEL[m]+'</th>'); h+='</tr></thead><tbody>';
+    rows.forEach(r=>{
+      h += '<tr><td class="tname" title="'+r.name+'">'+r.name+'</td>';
+      MONTHS.forEach(m=>{
+        const exp = r.expectedMonth[m]||0;
+        const el = r.perMonthElab[m]||0;
+        let bg='#f1efe9', txt='';
+        if (exp>0){
+          const ratio = Math.min(1, el/exp);
+          txt = Math.round(ratio*100)+'%';
+          bg = ratio===0 ? '#f1efe9' : ratio<0.4 ? '#d9534f' : ratio<0.7 ? '#d9943a' : '#2a9d6f';
+          const color = ratio===0 ? '#b0a99e' : '#fff';
+          h += '<td><span class="heat-cell" style="display:block;background:'+bg+';color:'+color+';padding:4px 2px">'+txt+'</span></td>';
+        } else {
+          h += '<td style="color:#cfc9bf">·</td>';
+        }
+      });
+      h += '</tr>';
+    });
+    h += '</tbody></table>';
+    document.getElementById('heatWrap').innerHTML = h;
+  }
+
+  function renderDetail(rows){
+    let h = '<table class="dtable"><thead><tr>'+
+      '<th>Professor</th><th>Carga sem.</th><th>Execução (planos)</th><th>Agenda preench.</th>'+
+      '<th>Aulas reg.</th><th>Planos</th><th>Meses ativos</th><th>Última atualiz.</th><th>Situação</th><th></th>'+
+      '</tr></thead><tbody>';
+    rows.forEach(r=>{
+      const pp = r.planoPct;
+      const barColor = ST_COLOR[r.status];
+      const exec = pp!=null ? ('<span class="bar-mini"><i style="width:'+pp+'%;background:'+barColor+'"></i></span>'+pp+'%') : '—';
+      const ag = r.agendaPct!=null ? r.agendaPct+'%' : '—';
+      const upd = r.lastUpdate ? r.lastUpdate.toLocaleDateString('pt-BR')+(r.daysSince!=null?' <span style="color:var(--muted2)">('+r.daysSince+'d)</span>':'') : '—';
+      h += '<tr>'+
+        '<td><b>'+r.name+'</b></td>'+
+        '<td class="num">'+(r.weeklyLoad||'—')+'</td>'+
+        '<td>'+exec+'</td>'+
+        '<td class="num">'+ag+'</td>'+
+        '<td class="num">'+r.filledClass+'</td>'+
+        '<td class="num">'+r.elaborated+'</td>'+
+        '<td class="num">'+r.monthsActive+'/10</td>'+
+        '<td>'+upd+'</td>'+
+        '<td><span class="st-badge st-'+r.status+'">'+ST_LABEL[r.status]+'</span></td>'+
+        '<td><button class="see-btn" onclick="window.dashViewTeacher(\''+r.name.replace(/'/g,"\\'")+'\')">Ver agenda ›</button></td>'+
+        '</tr>';
+    });
+    h += '</tbody></table>';
+    document.getElementById('detailWrap').innerHTML = h;
+  }
+
+  function destroy(id){ if(window._dashCharts[id]){ window._dashCharts[id].destroy(); delete window._dashCharts[id]; } }
+  function drawBar(id, labels, values, colors, axis){
+    if(typeof Chart==='undefined') return; destroy(id);
+    const ctx=document.getElementById(id); if(!ctx) return;
+    window._dashCharts[id]=new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:values,backgroundColor:colors,borderRadius:5,maxBarThickness:26}]},
+      options:{indexAxis:axis==='horizontal'?'y':'x',responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed[axis==='horizontal'?'x':'y']+(axis==='horizontal'?'%':' planos')}}},
+        scales:{x:{grid:{display:axis!=='horizontal'},ticks:{font:{size:10}}},y:{grid:{display:axis==='horizontal'},ticks:{font:{size:10}},beginAtZero:true,max:axis==='horizontal'?100:undefined}}}});
+  }
+  function drawDonut(id, labels, values, colors){
+    if(typeof Chart==='undefined') return; destroy(id);
+    const ctx=document.getElementById(id); if(!ctx) return;
+    window._dashCharts[id]=new Chart(ctx,{type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderWidth:2,borderColor:'#fff'}]},
+      options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:14}}}}});
+  }
+
+  window.buildDashboard = async function(){
+    const grid=document.getElementById('kpiGrid');
+    document.getElementById('detailWrap').innerHTML='<div class="dash-loading"><div class="dash-spin"></div>Carregando dados de todos os professores…</div>';
+    document.getElementById('heatWrap').innerHTML='';
+    if(!window.fbGet || !window.fbRef || !window.fbDb){
+      await new Promise(res=>document.addEventListener('firebaseReady',res,{once:true}));
+    }
+    const names=teacherNames();
+    const rows=await Promise.all(names.map(async name=>{
+      try{ const snap=await window.fbGet(window.fbRef(window.fbDb, fbPathFor(name)));
+           return analyze(name, snap.exists()?snap.val():{}); }
+      catch(e){ console.error('dash load',name,e); return analyze(name,{}); }
+    }));
+    render(rows);
+  };
+})();
+</script>
+<!-- ════════════════ /PAINEL DE MONITORAMENTO ════════════════ -->
+
+
 <script type="module">
 // ══════════════════════════════════════════════════════════════════
 //  FIREBASE REALTIME DATABASE — Agenda Simioni Manhã 2026
@@ -1529,11 +1874,14 @@ function afterLogin() {
   document.getElementById('loginOverlay').classList.add('hidden');
   if (isAdmin) {
     document.getElementById('adminBar').classList.remove('hidden');
-    document.getElementById('adminViewingLabel').textContent = 'Minha agenda (' + currentUser + ') ou visualizar:';
-  } else {
-    document.getElementById('userBar').classList.remove('hidden');
-    document.getElementById('userBarName').textContent = '👤 ' + currentUser;
+    document.getElementById('adminViewingLabel').textContent = 'Visão do gestor:';
+    document.getElementById('adminProfSelect').value = '';
+    window.enterDashboardMode();
+    window.buildDashboard();
+    return;
   }
+  document.getElementById('userBar').classList.remove('hidden');
+  document.getElementById('userBarName').textContent = '👤 ' + currentUser;
   document.querySelectorAll('[data-eid^="prof_"]').forEach(el => {
     if (!el.value) el.value = viewingUser;
   });
@@ -1551,6 +1899,7 @@ function doLogout() {
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginError').classList.remove('show');
   document.getElementById('adminProfSelect').value = '';
+  document.body.classList.remove('dash-mode');
   clearAgendaFields();
   window.setStatus('idle');
 }
@@ -1570,16 +1919,19 @@ async function loadUserData(name) {
 
 async function adminSwitchUser() {
   const sel = document.getElementById('adminProfSelect').value;
-  clearAgendaFields();
   if (!sel) {
     viewingUser = currentUser;
     window.viewingUser = currentUser;
-    document.getElementById('adminViewingLabel').textContent = 'Minha agenda (' + currentUser + ') ou visualizar:';
-  } else {
-    viewingUser = sel;
-    window.viewingUser = sel;
-    document.getElementById('adminViewingLabel').textContent = 'Visualizando: ' + sel;
+    document.getElementById('adminViewingLabel').textContent = 'Visão do gestor:';
+    window.enterDashboardMode();
+    window.buildDashboard();
+    return;
   }
+  window.exitDashboardMode();
+  clearAgendaFields();
+  viewingUser = sel;
+  window.viewingUser = sel;
+  document.getElementById('adminViewingLabel').textContent = 'Visualizando agenda de: ' + sel;
   document.querySelectorAll('[data-eid^="prof_"]').forEach(el => { el.value = viewingUser; });
   await loadUserData(viewingUser);
 }
